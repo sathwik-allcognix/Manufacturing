@@ -1,0 +1,14 @@
+backend/__pycache__/
+backend/app/__pycache__/
+backend/app/routers/__pycache__/
+backend/app/models/__pycache__/
+backend/app/schemas/__pycache__/
+backend/app/db/__pycache__/
+backend/app/security/__pycache__/
+backend/app/agents/__pycache__/
+backend/app/agents/forecast_graph/__pycache__/
+backend/app/agents/forecast_graph/__pycache__/
+backend/app/.env
+backend/.venv
+frontend/node_modules
+frontend/.env
