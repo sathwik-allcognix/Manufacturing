@@ -8,7 +8,7 @@ from ..security import verify_password, get_password_hash, create_access_token, 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
-router = APIRouter(prefix="/auth", tags=["auth"])lf,
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=schemas.OrganizationRead)

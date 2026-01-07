@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, FileSpreadsheet, Download, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { listProductsByOrg } from '../api';
 
 function DataImportPage() {
   const { org } = useAuth();
@@ -15,33 +16,29 @@ function DataImportPage() {
     username: '',
     password: '',
     security_token: '',
-    domain: 'login'
+    domain: 'login',
+    product_name_field: '',
+    start_date: '',
+    end_date: ''
   });
 
   useEffect(() => {
-    if (org?.org_id) {
-      fetchProducts();
-    }
+    const loadProducts = async () => {
+      if (!org) return;
+      setLoading(true);
+      try {
+        const res = await listProductsByOrg(org.org_id);
+        setProducts(res);
+        if (res.length > 0) setSelectedProduct(res[0].product_id.toString());
+      } catch (err) {
+        console.error(err);
+        setMessage({ type: 'error', text: 'Failed to load products' });
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadProducts();
   }, [org]);
-
-  const fetchProducts = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`/api/products/by_org/${org.org_id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (!response.ok) throw new Error('Failed to fetch products');
-      const data = await response.json();
-      setProducts(data);
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to load products' });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -72,7 +69,7 @@ function DataImportPage() {
 
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/sales/import/excel', {
+      const response = await fetch('http://localhost:8000/api/sales/import/excel', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -115,7 +112,7 @@ function DataImportPage() {
 
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/sales/import/salesforce', {
+      const response = await fetch('http://localhost:8000/api/sales/import/salesforce', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -138,7 +135,15 @@ function DataImportPage() {
         text: `Successfully imported ${data.imported_count} records from Salesforce. ${data.skipped_count > 0 ? `Skipped ${data.skipped_count} duplicates.` : ''}` 
       });
       setSelectedProduct('');
-      setSalesforceConfig({ username: '', password: '', security_token: '', domain: 'login' });
+      setSalesforceConfig({ 
+        username: '', 
+        password: '', 
+        security_token: '', 
+        domain: 'login',
+        product_name_field: '',
+        start_date: '',
+        end_date: ''
+      });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to import from Salesforce' });
     } finally {
@@ -353,6 +358,60 @@ function DataImportPage() {
                     <option value="login">Production (login.salesforce.com)</option>
                     <option value="test">Sandbox (test.salesforce.com)</option>
                   </select>
+                </div>
+
+                <div className="border-t border-gray-200 pt-4 mt-6">
+                  <h3 className="text-sm font-medium text-gray-900 mb-4">Data Filtering Options</h3>
+                  
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Product Name/SKU in Salesforce
+                      <span className="text-gray-500 text-xs ml-2">(Optional - leave blank to import all)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={salesforceConfig.product_name_field}
+                      onChange={(e) => setSalesforceConfig({...salesforceConfig, product_name_field: e.target.value})}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g., Widget Pro 2000"
+                      disabled={uploading}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Filter by product name to import only specific product data
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Start Date
+                        <span className="text-gray-500 text-xs ml-2">(Optional)</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={salesforceConfig.start_date}
+                        onChange={(e) => setSalesforceConfig({...salesforceConfig, start_date: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        disabled={uploading}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        End Date
+                        <span className="text-gray-500 text-xs ml-2">(Optional)</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={salesforceConfig.end_date}
+                        onChange={(e) => setSalesforceConfig({...salesforceConfig, end_date: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        disabled={uploading}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Leave dates blank to import all available historical data
+                  </p>
                 </div>
               </div>
 

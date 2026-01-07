@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .db import Base, engine
-from .routers import  product, sales, forecast, auth
+from .routers import  product, sales, forecast, auth, importData
 from .configs import config
 
 Base.metadata.create_all(bind=engine)
@@ -27,7 +27,7 @@ app.include_router(product.router)
 app.include_router(sales.router)
 app.include_router(forecast.router)
 app.include_router(auth.router)
-
+app.include_router(importData.router)
 
 @app.get("/")
 def read_root():

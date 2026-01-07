@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -54,7 +55,7 @@ def create_sales_entry(
     return sales
 
 
-@router.get("/by_product/{product_id}", response_model=list[schemas.SalesRead])
+@router.get("/by_product/{product_id}", response_model=List[schemas.SalesRead])
 def list_sales_by_product(
     product_id: int,
     db: Session = Depends(get_db),
@@ -73,13 +74,13 @@ def list_sales_by_product(
     sales = (
         db.query(models.SalesData)
         .filter(models.SalesData.product_id == product_id)
-        .order_by(models.SalesData.sales_date)
+        .order_by(models.SalesData.sales_date.desc())
         .all()
     )
     return sales
 
 
-@router.get("/by_org/{org_id}", response_model=list[schemas.SalesRead])
+@router.get("/by_org/{org_id}", response_model=List[schemas.SalesRead])
 def list_sales_by_org(
     org_id: int,
     db: Session = Depends(get_db),
@@ -92,8 +93,113 @@ def list_sales_by_org(
         db.query(models.SalesData)
         .join(models.Product, models.Product.product_id == models.SalesData.product_id)
         .filter(models.Product.org_id == org_id)
-        .order_by(models.SalesData.sales_date)
+        .order_by(models.SalesData.sales_date.desc())
         .all()
     )
     return sales
 
+
+@router.get("/{order_id}", response_model=schemas.SalesRead)
+def get_sales_entry(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_org: models.Organization = Depends(get_current_org),
+):
+    sales = (
+        db.query(models.SalesData)
+        .filter(models.SalesData.order_id == order_id)
+        .first()
+    )
+    if not sales:
+        raise HTTPException(status_code=404, detail="Sales entry not found")
+    
+    # Check authorization
+    product = (
+        db.query(models.Product)
+        .filter(models.Product.product_id == sales.product_id)
+        .first()
+    )
+    if product.org_id != current_org.org_id:
+        raise HTTPException(status_code=403, detail="Not authorized to view this sales entry")
+    
+    return sales
+
+
+@router.put("/{order_id}", response_model=schemas.SalesRead)
+def update_sales_entry(
+    order_id: int,
+    sales_update: schemas.SalesUpdate,
+    db: Session = Depends(get_db),
+    current_org: models.Organization = Depends(get_current_org),
+):
+    sales = (
+        db.query(models.SalesData)
+        .filter(models.SalesData.order_id == order_id)
+        .first()
+    )
+    if not sales:
+        raise HTTPException(status_code=404, detail="Sales entry not found")
+    
+    # Check authorization
+    product = (
+        db.query(models.Product)
+        .filter(models.Product.product_id == sales.product_id)
+        .first()
+    )
+    if product.org_id != current_org.org_id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this sales entry")
+    
+    # Check if updating date would create duplicate
+    if sales_update.sales_date and sales_update.sales_date != sales.sales_date:
+        existing = (
+            db.query(models.SalesData)
+            .filter(
+                models.SalesData.product_id == sales.product_id,
+                models.SalesData.sales_date == sales_update.sales_date,
+                models.SalesData.order_id != order_id,
+            )
+            .first()
+        )
+        if existing:
+            raise HTTPException(
+                status_code=400,
+                detail="Sales entry for this product and date already exists",
+            )
+    
+    # Update fields
+    if sales_update.sales_date is not None:
+        sales.sales_date = sales_update.sales_date
+    if sales_update.sales_quantity is not None:
+        sales.sales_quantity = sales_update.sales_quantity
+    
+    db.commit()
+    db.refresh(sales)
+    return sales
+
+
+@router.delete("/{order_id}")
+def delete_sales_entry(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_org: models.Organization = Depends(get_current_org),
+):
+    sales = (
+        db.query(models.SalesData)
+        .filter(models.SalesData.order_id == order_id)
+        .first()
+    )
+    if not sales:
+        raise HTTPException(status_code=404, detail="Sales entry not found")
+    
+    # Check authorization
+    product = (
+        db.query(models.Product)
+        .filter(models.Product.product_id == sales.product_id)
+        .first()
+    )
+    if product.org_id != current_org.org_id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this sales entry")
+    
+    db.delete(sales)
+    db.commit()
+    return {"message": "Sales entry deleted successfully"}

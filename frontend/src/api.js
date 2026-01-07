@@ -32,6 +32,7 @@ export async function login({ org_name, password }) {
   return res.data;
 }
 
+// Product endpoints
 export async function createProduct(input) {
   const res = await api.post("/product", input);
   return res.data;
@@ -42,10 +43,13 @@ export async function listProductsByOrg(orgId) {
   return res.data;
 }
 
+// Sales endpoints - CREATE
 export async function createSalesEntry(input) {
-  await api.post("/sales", input);
+  const res = await api.post("/sales", input);
+  return res.data;
 }
 
+// Sales endpoints - READ
 export async function getSalesByProduct(productId) {
   const res = await api.get(`/sales/by_product/${productId}`);
   return res.data;
@@ -56,6 +60,24 @@ export async function getSalesByOrg(orgId) {
   return res.data;
 }
 
+export async function getSalesEntry(orderId) {
+  const res = await api.get(`/sales/${orderId}`);
+  return res.data;
+}
+
+// Sales endpoints - UPDATE
+export async function updateSalesEntry(orderId, data) {
+  const res = await api.put(`/sales/${orderId}`, data);
+  return res.data;
+}
+
+// Sales endpoints - DELETE
+export async function deleteSalesEntry(orderId) {
+  const res = await api.delete(`/sales/${orderId}`);
+  return res.data;
+}
+
+// Forecast endpoints
 export async function getForecast(productId, days) {
   const res = await api.get(`/forecast/${productId}`, {
     params: { days },
@@ -70,5 +92,3 @@ export async function getNlpForecast(productId, query) {
   });
   return res.data;
 }
-
-

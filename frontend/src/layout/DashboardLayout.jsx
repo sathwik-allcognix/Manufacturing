@@ -1,7 +1,7 @@
 import React from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { TrendingUp, BarChart3, Calendar } from "lucide-react";
+import { TrendingUp, BarChart3, Calendar, Upload, ShoppingCart } from "lucide-react";
 
 function DashboardLayout() {
   const { org, signOut } = useAuth();
@@ -52,6 +52,34 @@ function DashboardLayout() {
           >
             <Calendar className="h-4 w-4" />
             <span>Forecast</span>
+          </NavLink>
+          
+          <NavLink
+            to="/app/sales"
+            className={({ isActive }) =>
+              `w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                isActive
+                  ? "bg-blue-50 text-blue-700"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`
+            }
+          >
+            <ShoppingCart className="h-4 w-4" />
+            <span>Sales Data</span>
+          </NavLink>
+          
+          <NavLink
+            to="/app/import"
+            className={({ isActive }) =>
+              `w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                isActive
+                  ? "bg-blue-50 text-blue-700"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`
+            }
+          >
+            <Upload className="h-4 w-4" />
+            <span>Import Data</span>
           </NavLink>
         </nav>
         
